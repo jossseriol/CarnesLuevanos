@@ -1,0 +1,63 @@
+# Python caches and tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build and packaging outputs
+build/
+!pwa-iphone/build/
+!pwa-iphone/build/sites-vite-plugin.ts
+dist/
+Release_CarnesLuevanos/
+installer_build/app_payload.zip
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Local databases and transient SQLite files
+database.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+
+# Local secrets
+.env
+*.env.local
+cloud/.env
+
+# Private business and user-generated data
+facturas/
+media/perfiles/
+media/qr/
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+.vs/
+bin/
+obj/
+
+# Local editor configuration
+.vscode/
+*.code-workspace
