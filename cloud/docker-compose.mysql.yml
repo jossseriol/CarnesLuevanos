@@ -1,0 +1,61 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-carnes_luevanos}
+      MYSQL_USER: ${MYSQL_USER:-carnes_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: ${TZ:-America/Mexico_City}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u${MYSQL_USER:-carnes_user} -p${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile.mysql
+    restart: unless-stopped
+    environment:
+      DB_ENGINE: mysql
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-carnes_luevanos}
+      MYSQL_USER: ${MYSQL_USER:-carnes_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      API_SECRET_KEY: ${API_SECRET_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    expose:
+      - "8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:
