@@ -11,7 +11,7 @@ COPY requirements-cloud.txt /app/requirements-cloud.txt
 RUN pip install --no-cache-dir -r /app/requirements-cloud.txt
 
 COPY api /app/api
-COPY database.db /app/database.db
+COPY modulos /app/modulos
 
 RUN mkdir -p /app/data
 
