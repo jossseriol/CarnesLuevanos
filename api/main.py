@@ -28,7 +28,12 @@ def startup():
 
 @app.middleware("http")
 async def api_key_middleware(request: Request, call_next):
-    if API_SECRET_KEY and request.url.path.startswith(API_PREFIX) and request.url.path != f"{API_PREFIX}/health":
+    if (
+        request.method != "OPTIONS"
+        and API_SECRET_KEY
+        and request.url.path.startswith(API_PREFIX)
+        and request.url.path != f"{API_PREFIX}/health"
+    ):
         token = request.headers.get("x-api-key", "")
         if token != API_SECRET_KEY:
             return JSONResponse(status_code=401, content={"detail": "API key invalida"})
