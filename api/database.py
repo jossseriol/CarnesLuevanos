@@ -1,6 +1,8 @@
 import sqlite3
 import shutil
+import os
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any, Iterable
 
 from .config import (
@@ -60,8 +62,58 @@ def ensure_database_ready() -> None:
     if is_mysql():
         return
     DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if not DATABASE_PATH.exists() and DATABASE_SEED_PATH.exists():
-        shutil.copy2(DATABASE_SEED_PATH, DATABASE_PATH)
+    if not DATABASE_PATH.exists():
+        if DATABASE_SEED_PATH.exists() and DATABASE_SEED_PATH != DATABASE_PATH:
+            shutil.copy2(DATABASE_SEED_PATH, DATABASE_PATH)
+        else:
+            _initialize_empty_database()
+
+
+def _initialize_empty_database() -> None:
+    schema_path = Path(__file__).with_name("sqlite_schema.sql")
+    if not schema_path.exists():
+        raise RuntimeError(f"No se encontro el esquema inicial: {schema_path}")
+
+    admin_username = os.getenv("CARNES_LUEVANOS_INITIAL_ADMIN_USERNAME", "admin").strip() or "admin"
+    admin_password = os.getenv("CARNES_LUEVANOS_INITIAL_ADMIN_PASSWORD", "").strip()
+    if not admin_password:
+        raise RuntimeError(
+            "Define CARNES_LUEVANOS_INITIAL_ADMIN_PASSWORD para crear la base de datos inicial."
+        )
+
+    conn = sqlite3.connect(DATABASE_PATH)
+    try:
+        conn.executescript(schema_path.read_text(encoding="utf-8"))
+        conn.commit()
+    finally:
+        conn.close()
+
+    from modulos.auth.seguridad import ensure_security_schema, hash_password
+
+    ensure_security_schema()
+
+    conn = sqlite3.connect(DATABASE_PATH)
+    try:
+        row = conn.execute("SELECT id FROM usuarios LIMIT 1").fetchone()
+        if row is None:
+            cursor = conn.execute(
+                """INSERT INTO usuarios
+                   (username, password, nombre, rol, estado, requiere_cambio_password)
+                   VALUES (?, ?, ?, 'super', 'activo', 0)""",
+                (admin_username, hash_password(admin_password), "Administrador Luevanos"),
+            )
+            admin_id = int(cursor.lastrowid)
+            for module in (
+                "ventas", "inventario", "clientes", "pedidos", "proveedores",
+                "compras", "rendimiento", "informacion", "configuracion",
+            ):
+                conn.execute(
+                    "INSERT INTO permisos_usuario (usuario_id, modulo, permitido) VALUES (?, ?, 1)",
+                    (admin_id, module),
+                )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_connection():
