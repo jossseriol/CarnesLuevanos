@@ -5,8 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements-cloud.txt /app/requirements-cloud.txt
-RUN pip install --no-cache-dir -r /app/requirements-cloud.txt
+COPY requirements-cloud-mysql.txt /app/requirements-cloud-mysql.txt
+RUN pip install --no-cache-dir -r /app/requirements-cloud-mysql.txt
 
 COPY api /app/api
 COPY modulos /app/modulos
