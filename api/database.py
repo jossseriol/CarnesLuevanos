@@ -60,8 +60,25 @@ class MySQLConnection:
 
 def ensure_database_ready() -> None:
     if is_mysql():
+        conn = get_connection()
+        try:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS clientes (
+                    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    nombre VARCHAR(255),
+                    cedula VARCHAR(100),
+                    celular VARCHAR(100),
+                    direccion TEXT,
+                    correo VARCHAR(255)
+                )
+            """)
+            conn.commit()
+        finally:
+            conn.close()
         return
+
     DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
     if not DATABASE_PATH.exists():
         if DATABASE_SEED_PATH.exists() and DATABASE_SEED_PATH != DATABASE_PATH:
             shutil.copy2(DATABASE_SEED_PATH, DATABASE_PATH)
