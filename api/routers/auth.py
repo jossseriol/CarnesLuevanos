@@ -96,7 +96,72 @@ def bootstrap_admin(payload: dict):
             "username": username,
             "role": "administrador",
         }
+@router.post("/reset-admin-password")
+def reset_admin_password(payload: dict):
+    if not is_mysql():
+        raise HTTPException(
+            status_code=400,
+            detail="Este endpoint es solo para MySQL",
+        )
 
+    username = str(payload.get("username") or "admin").strip()
+    new_password = str(payload.get("password") or "")
+
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña debe tener al menos 8 caracteres",
+        )
+
+    from argon2 import PasswordHasher
+
+    password_hash = PasswordHasher().hash(new_password)
+
+    with transaction() as conn:
+        user = conn.execute(
+            """
+            SELECT id, username, rol
+            FROM usuarios
+            WHERE LOWER(username) = LOWER(?)
+            LIMIT 1
+            """,
+            (username,),
+        ).fetchone()
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Usuario no encontrado",
+            )
+
+        if str(user.get("rol") or "").lower() not in {
+            "admin",
+            "administrador",
+            "super",
+        }:
+            raise HTTPException(
+                status_code=403,
+                detail="El usuario no es administrador",
+            )
+
+        conn.execute(
+            """
+            UPDATE usuarios
+            SET password = ?,
+                intentos_fallidos = 0,
+                bloqueado_hasta = NULL,
+                estado = 'activo'
+            WHERE id = ?
+            """,
+            (password_hash, user["id"]),
+        )
+
+    return {
+        "ok": True,
+        "username": user["username"],
+        "message": "Contraseña de administrador actualizada",
+    }
+     
 
 
 
