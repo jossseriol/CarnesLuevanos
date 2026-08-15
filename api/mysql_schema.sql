@@ -227,8 +227,7 @@ CREATE TABLE IF NOT EXISTS sesiones_usuario (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE INDEX idx_sesiones_usuario_abiertas
-ON sesiones_usuario(usuario_id, cerrada(100));
+
 
 CREATE TABLE IF NOT EXISTS dispositivos_autorizados (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
