@@ -7,7 +7,6 @@ from ..config import DATABASE_PATH
 from ..database import get_connection, is_mysql, transaction
 from ..schemas import LoginIn, MfaEnableIn, UnlockAccountIn
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -50,9 +49,9 @@ def bootstrap_admin(payload: dict):
             detail="La contraseña debe tener al menos 8 caracteres",
         )
 
-    from modulos.auth.seguridad import hash_password
+    from argon2 import PasswordHasher
 
-    password_hash = hash_password(password)
+    password_hash = PasswordHasher().hash(password)
     now = datetime.now()
 
     with transaction() as conn:
