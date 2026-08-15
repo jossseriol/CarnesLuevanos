@@ -60,35 +60,29 @@ class MySQLConnection:
 
 def ensure_database_ready() -> None:
     if is_mysql():
+        schema_path = Path(__file__).with_name("mysql_schema.sql")
+
+        if not schema_path.exists():
+            raise RuntimeError(
+                f"No se encontro el esquema MySQL: {schema_path}"
+            )
+
         conn = get_connection()
         try:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS clientes (
-                    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    nombre VARCHAR(255),
-                    cedula VARCHAR(100),
-                    celular VARCHAR(100),
-                    direccion TEXT,
-                    correo VARCHAR(255)
-                )
-            """)
+            sql_script = schema_path.read_text(encoding="utf-8")
 
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS articulos (
-                    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    codigo VARCHAR(100) UNIQUE,
-                    articulo VARCHAR(255) NOT NULL,
-                    precio DECIMAL(12,2) NOT NULL,
-                    costo DECIMAL(12,2) NOT NULL,
-                    stock INT NOT NULL,
-                    estado VARCHAR(50) NOT NULL DEFAULT 'activo',
-                    imagen_path TEXT
-                )
-            """)
+            for statement in sql_script.split(";"):
+                statement = statement.strip()
+                if statement:
+                    conn.execute(statement)
 
             conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
+
         return
 
     DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -98,7 +92,6 @@ def ensure_database_ready() -> None:
             shutil.copy2(DATABASE_SEED_PATH, DATABASE_PATH)
         else:
             _initialize_empty_database()
-
 
 def _initialize_empty_database() -> None:
     schema_path = Path(__file__).with_name("sqlite_schema.sql")
