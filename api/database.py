@@ -72,6 +72,20 @@ def ensure_database_ready() -> None:
                     correo VARCHAR(255)
                 )
             """)
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS articulos (
+                    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    codigo VARCHAR(100) UNIQUE,
+                    articulo VARCHAR(255) NOT NULL,
+                    precio DECIMAL(12,2) NOT NULL,
+                    costo DECIMAL(12,2) NOT NULL,
+                    stock INT NOT NULL,
+                    estado VARCHAR(50) NOT NULL DEFAULT 'activo',
+                    imagen_path TEXT
+                )
+            """)
+
             conn.commit()
         finally:
             conn.close()
