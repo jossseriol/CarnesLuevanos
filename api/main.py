@@ -1,16 +1,23 @@
-﻿from fastapi import FastAPI, Request
+﻿from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 
 from .config import API_PREFIX, API_SECRET_KEY, CORS_ORIGINS, DATABASE_PATH
 from .database import ensure_database_ready, get_connection
 from .routers import articulos, auth, clientes, compras, eventos_sistema, mobile, pedidos, proveedores, ventas
 
+api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
+
+async def verify_api_key(api_key: str = Depends(api_key_header)):
+    if API_SECRET_KEY and api_key != API_SECRET_KEY:
+        raise HTTPException(status_code=401, detail="API key invalida")
 
 app = FastAPI(
     title="Carnes Luévanos API",
     description="API cloud para comunicar Carnes Luévanos con Android/iOS.",
     version="1.1.0",
+    dependencies=[Depends(verify_api_key)],
 )
 
 app.add_middleware(
@@ -26,14 +33,11 @@ def startup():
     ensure_database_ready()
 
 
+
+
 @app.middleware("http")
 async def api_key_middleware(request: Request, call_next):
-    if (
-        request.method != "OPTIONS"
-        and API_SECRET_KEY
-        and request.url.path.startswith(API_PREFIX)
-        and request.url.path != f"{API_PREFIX}/health"
-    ):
+    if API_SECRET_KEY and request.url.path.startswith(API_PREFIX) and request.url.path != f"{API_PREFIX}/health":
         token = request.headers.get("x-api-key", "")
         if token != API_SECRET_KEY:
             return JSONResponse(status_code=401, content={"detail": "API key invalida"})
